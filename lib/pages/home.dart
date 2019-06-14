@@ -12,13 +12,115 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
+File file;
+
+class Plant extends StatelessWidget {
+  File file;
+  bool isWeed = false;
+  String date;
+  String crop;
+  String path;
+  // double percentage;
+
+  Plant(
+      {@required this.file,
+      this.isWeed = false,
+      @required this.date,
+      @required this.crop,
+      this.path
+      //  @required this.percentage,
+      });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+        child: Container(
+      height: 150,
+      child: Stack(
+        children: <Widget>[
+          Image.file(
+            file,
+            fit: BoxFit.cover,
+            height: 200,
+            width: double.infinity,
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: RaisedButton(
+              shape: StadiumBorder(),
+              child: Text(
+                crop,
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+              color: Colors.black,
+              onPressed: () {},
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Container(
+              color: Colors.white30,
+              padding: EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    isWeed == null ? "Weed" : "Crop",
+                    style: TextStyle(
+                      color: isWeed == null ? Colors.red : Colors.black,
+                      fontSize: 24,
+                    ),
+                  ),
+                  Text(date)
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
+    ));
+  }
+}
+
 class _HomeState extends State<Home> {
   bool addFlag = false;
   bool addFlag2 = false;
+  List<Plant> l = [];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: Drawer(
+          child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Container(
+              alignment: Alignment.centerLeft,
+              height: 150,
+              color: primaryDark,
+              padding: EdgeInsets.all(24),
+              child: Text(
+                "Weedy",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                ),
+              )),
+          ListTile(
+            leading: Icon(Icons.add),
+            title: Text("Contribute"),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: Icon(Icons.info),
+            title: Text("About us"),
+            onTap: () {},
+          ),
+        ],
+      )),
       appBar: AppBar(
         title: Text("Weedy"),
         actions: <Widget>[
@@ -32,16 +134,17 @@ class _HomeState extends State<Home> {
         double itemHeight = c.maxHeight / 8;
         if (itemHeight > 70) itemHeight = 70;
         double spacing = c.maxHeight / 24;
+
         return Stack(
           children: <Widget>[
-            SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Image.asset("assets/landingimg.png"),
-                ],
-              ),
-            ),
+            file == null
+                ? Image.asset("assets/landingimg.png")
+                : ListView.builder(
+                    itemCount: l.length,
+                    itemBuilder: (bc, i) {
+                      return l[i];
+                    },
+                  ),
             buildAddButton(spacing, itemHeight)
           ],
         );
@@ -49,17 +152,43 @@ class _HomeState extends State<Home> {
     );
   }
 
-  File file;
-
-  Future<Null> _choose() async {
-    file = await ImagePicker.pickImage(source: ImageSource.camera);
-// file = await ImagePicker.pickImage(source: ImageSource.gallery);
+  void _choose() {
+    // file = await ImagePicker.pickImage(source: ImageSource.camera);
+    // setState(() async {
+    //   file = await ;
+    // });
+    ImagePicker.pickImage(source: ImageSource.gallery).then((f) {
+      setState(() {
+        file = f;
+      });
+      _upload().then((_) {
+        setState(() {
+          l.add(
+            Plant(
+              file: file,
+              date: DateTime.now().toString(),
+              isWeed: isWeed,
+              crop: "crop",
+              // percentage: 12,
+            ),
+          );
+        });
+      });
+    });
+    print("Chosen");
   }
 
-  void _upload() async {
+  bool isWeed;
+
+  Future<Null> _upload() async {
+    print("Hey there !");
     var request = new http.MultipartRequest(
       "POST",
-      Uri.http("Ashwinddd03030.pythonanywhere.com", "/"),
+      Uri.http(
+        // "ec2-54-85-163-59.compute-1.amazonaws.com",
+        "",
+        "/",
+      ),
     );
     request.fields['class'] = 'brinjal';
     request.files.add(await http.MultipartFile.fromPath(
@@ -68,10 +197,16 @@ class _HomeState extends State<Home> {
       contentType: MediaType('image', 'jpg'),
     ));
     request.send().then((response) async {
-      if (response.statusCode == 200) print("Uploaded!");
-      print(await response.stream.bytesToString());
-      // Map<String, dynamic> user = jsonDecode(response.toString());
+      print("Yo");
+      print("Status code: ${await response.stream.bytesToString()}");
+      if (response.statusCode == 200) {
+        print("Uploaded!");
+      }
+      isWeed = (await response.stream.bytesToString()).contains("weed");
+      Map<String, dynamic> user = jsonDecode(response.toString());
+      print(user);
     });
+    print("Hey there !");
     // if (file == null) return;
     // String base64Image = base64Encode(file.readAsBytesSync());
     // String fileName = file.path.split("/").last;
@@ -81,6 +216,7 @@ class _HomeState extends State<Home> {
     // }).catchError((err) {
     //   print(err);
     // });
+    return;
   }
 
   Future getImage() async {
@@ -115,9 +251,7 @@ class _HomeState extends State<Home> {
               child: GestureDetector(
                 onTap: () {
                   // _upload();
-                  _choose().then((_) {
-                    _upload();
-                  });
+                  _choose();
                 },
                 child: addFlag2
                     ? Container(
@@ -203,3 +337,6 @@ class _HomeState extends State<Home> {
     );
   }
 }
+
+//senthilsenthil0028@gmail.com
+//9865652242
